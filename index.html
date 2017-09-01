@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A web interface for MQTT over Websockets">
+    <meta name="author" content="Francis">
+
+    <title>MQQT Demo</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script type="text/javascript" src="js/jquery-1.11.2.min.js"></script>
+    <!-- Sparkline -->
+    <script type="text/javascript" src="js/jquery.sparkline.min.js"></script>
+    <!-- jgPlot -->
+    <link class="include" rel="stylesheet" type="text/css" href="dist/jquery.jqplot.min.css" />
+    <script type="text/javascript" src="js/jquery.jqplot.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.canvasTextRenderer.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.canvasAxisLabelRenderer.min.js"></script>
+    <script type="text/javascript" src="js/jqplot.dateAxisRenderer.min.js"></script>
+    <!-- MQTT Websocket -->
+    <script type="text/javascript" src="js/mqttws31.js"></script>
+    <script type="text/javascript">
+        var host = '35.154.161.206';
+        var port = 1884;
+        var topic = 'omnia';
+        var useTLS = false;
+        var cleansession = true;
+        var mqtt;
+        var reconnectTimeout = 2000;
+
+        function MQTTconnect() {
+    	    if (typeof path == "undefined") {
+    		    path = '/mqtt';
+    	    }
+
+    	    mqtt = new Paho.MQTT.Client(
+    			    host,
+    			    port,
+    			    path,
+    			    "mqtt_panel" + parseInt(Math.random() * 100, 10)
+    	    );
+
+            var options = {
+                timeout: 3,
+                useSSL: useTLS,
+                cleanSession: cleansession,
+                onSuccess: onConnect,
+                userName: "",
+                password: "",
+                onFailure: function (message) {
+                    $('#status').html("Connection failed: " + message.errorMessage + "Retrying...");
+                    setTimeout(MQTTconnect, reconnectTimeout);
+                }
+            };
+
+            mqtt.onConnectionLost = onConnectionLost;
+            mqtt.onMessageArrived = onMessageArrived;
+            console.log("Host: "+ host + ", Port: " + port + ", Path: " + path + " TLS: " + useTLS);
+            mqtt.connect(options);
+        };
+
+        function onConnect() {
+            $('#status').html('Connected to ' + host + ':' + port + path);
+            mqtt.subscribe(topic, {qos: 0});
+            $('#topic').html(topic);
+        };
+
+        function onConnectionLost(response) {
+            setTimeout(MQTTconnect, reconnectTimeout);
+            $('#status').html("Connection lost: " + responseObject.errorMessage + ". Reconnecting...");
+        };
+
+        function onMessageArrived(message) {
+            var topic = message.destinationName;
+            var payload = message.payloadString;
+            //console.log("Topic: " + topic + ", Message payload: " + payload);
+            $('#message').prepend(topic + ', ' + payload);
+        };
+        
+        $(document).ready(function() {
+            MQTTconnect();
+        });
+    </script>
+
+  </head>
+
+  <body>
+    <div id="wrap">
+      <div class="container">
+        <div class="page-header"><h1><b>MQTT Demo</b></h1></div>
+        <div class="panel panel-default">
+          <div class="panel-body">
+              <div class="row">
+                <div class="col-md-6"><b>Topic:  </b><small id='topic'></small></div>
+                <div class="col-md-6"><b>Status: </b>  <small id='status'></small></div>
+                <div class="col-md-6"><b>Messages:  </b><small id='message'></small></div>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
